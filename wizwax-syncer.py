@@ -134,6 +134,9 @@ def main():
         print "Copied %d files successfully." % files_copied
     else:
         print "Copied 0 files. (No new files detected)"
+    
+    # Allow time to read the output.
+    raw_input()
 
 if __name__ == '__main__':
     sp.call('clear', shell=True)
