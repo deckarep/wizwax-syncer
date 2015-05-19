@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import subprocess as sp
 import os
@@ -6,6 +7,11 @@ import argparse
 import shutil
 import time
 import sys
+
+# tkinter junk
+from Tkinter import Tk, BOTH, RIGHT, LEFT
+from ttk import Frame, Button, Style, Entry
+import tkFileDialog
 
 wizwax_banner = """
                                                         @:@                                           +
@@ -82,6 +88,7 @@ parser.add_argument("-s", "--source", help="The source flag is an absolute path 
 parser.add_argument("-d", "--destination", help="The destination flag is an absolute path of a directory to write to.")
 parser.add_argument("-v", "--verbose", action="store_true", help="Show more logging of what this app is doing.")
 parser.add_argument("-n", "--noprompt", action="store_true", help="Don't prompt, just do it!")
+parser.add_argument("-g", "--gui", action="store_true", help="Turn on GUI mode")
 args = parser.parse_args()
 
 def verbose(msg):
@@ -134,11 +141,55 @@ def main():
         print "Copied %d files successfully." % files_copied
     else:
         print "Copied 0 files. (No new files detected)"
-    
+
     # Allow time to read the output.
     raw_input()
+
+class Example(Frame):
+
+    def __init__(self, parent):
+        Frame.__init__(self, parent)
+
+        self.parent = parent
+
+        self.initUI()
+
+    def source_open(self):
+        my_dir = tkFileDialog.askdirectory()
+        print my_dir
+
+    def initUI(self):
+        self.parent.title("WizWax Syncer 1.0")
+        self.style = Style()
+        self.style.theme_use("default")
+
+        self.pack(fill=BOTH, expand=1)
+
+        sourceEntry = Entry(self)
+        sourceEntry.pack(side=LEFT)
+        sourceEntry.insert(0, "Hi fucker")
+
+        sourceButton = Button(self, text="Source", command=self.source_open)
+        sourceButton.pack(side=LEFT)
+
+        destEntry = Entry(self)
+        destEntry.pack(side=LEFT)
+
+        destButton = Button(self, text="Destination", command=self.source_open)
+        destButton.pack(side=LEFT)
+
+        quitButton = Button(self, text="Quit", command=self.quit)
+        quitButton.place(x=10, y=100)
+
+def main_gui():
+    root = Tk()
+    root.geometry("600x150+300+300")
+    app = Example(root)
+    root.mainloop()
 
 if __name__ == '__main__':
     sp.call('clear', shell=True)
     #banner()
-    main()
+    #main()
+    if args.gui:
+        main_gui()
