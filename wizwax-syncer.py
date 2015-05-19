@@ -9,7 +9,7 @@ import time
 import sys
 
 # tkinter junk
-from Tkinter import Tk, BOTH, RIGHT, LEFT
+from Tkinter import Tk, BOTH, RIGHT, LEFT, W, E, N, S, DISABLED, NORMAL
 from ttk import Frame, Button, Style, Entry
 import tkFileDialog
 
@@ -157,6 +157,8 @@ class Example(Frame):
     def source_open(self):
         my_dir = tkFileDialog.askdirectory()
         print my_dir
+        #self.sourceEntry.state = NORMAL
+        self.sourceEntry.insert(0, my_dir)
 
     def initUI(self):
         self.parent.title("WizWax Syncer 1.0")
@@ -165,21 +167,20 @@ class Example(Frame):
 
         self.pack(fill=BOTH, expand=1)
 
-        sourceEntry = Entry(self)
-        sourceEntry.pack(side=LEFT)
-        sourceEntry.insert(0, "Hi fucker")
+        self.sourceEntry = Entry(self)
+        self.sourceEntry.grid(row=0, column=0, padx=10)
+        self.sourceEntry.insert(0, "Pick source folder...")
 
         sourceButton = Button(self, text="Source", command=self.source_open)
-        sourceButton.pack(side=LEFT)
+        sourceButton.grid(row=0, column=1, padx=10)
 
-        destEntry = Entry(self)
-        destEntry.pack(side=LEFT)
+        destEntry = Entry(self, state=DISABLED)
+        destEntry.insert(0, "Pick destination folder...")
+        destEntry.grid(row=1, column=0)
 
         destButton = Button(self, text="Destination", command=self.source_open)
-        destButton.pack(side=LEFT)
+        destButton.grid(row=1, column=1)
 
-        quitButton = Button(self, text="Quit", command=self.quit)
-        quitButton.place(x=10, y=100)
 
 def main_gui():
     root = Tk()
