@@ -7,11 +7,14 @@ import argparse
 import shutil
 import time
 import sys
+import Queue
+import threading
 
 # tkinter junk
 from Tkinter import Tk, BOTH, RIGHT, LEFT, W, E, N, S, DISABLED, NORMAL, END
 from ttk import Frame, Button, Style, Entry
 import tkFileDialog
+import tkMessageBox
 
 wizwax_banner = """
                                                         @:@                                           +
@@ -145,12 +148,14 @@ def main():
     # Allow time to read the output.
     raw_input()
 
-class Example(Frame):
+class WizwaxApp(Frame):
 
     def __init__(self, parent):
         Frame.__init__(self, parent)
 
         self.parent = parent
+        self.poll_interval = 100
+        self.queue = Queue.Queue()
 
         self.initUI()
 
@@ -185,15 +190,44 @@ class Example(Frame):
         destButton = Button(self, text="Destination", command=self.source_open)
         destButton.grid(row=1, column=1)
 
-        syncButton = Button(self, text="Sync that Shiz", command=self.source_open)
-        syncButton.grid(row=3, column=0, sticky=W+E, padx=10)
+        syncButton = Button(self, text="Sync that Shiz", command=self.kickoff_thread)
+        syncButton.grid(row=3, column=0, columnspan=2, sticky=W+E, padx=10)
+
+        # Start polling on GUI main thread so we can receive a result from worker thread
+        self.parent.after(self.poll_interval, self.poll)
+
+    # poll() is responsible for checking the synchronized queue for a result when finished.
+    def poll(self):
+        try:
+            # We can't use the blocking get() call other we block GUI thread.
+            result = self.queue.get_nowait()
+            # When we get a result, the kickoff_thread finished!
+            print result
+        except:
+            # When we check the queue, if empty an Empty exception is thrown (this is expected)
+            pass
+
+        # Kick off poll again
+        self.parent.after(self.poll_interval, self.poll)
+
+    # kickoff_thread() is responsible for doing the actual file i/o work so as to not block the main thread
+    def kickoff_thread(self):
+        tkMessageBox.showwarning("Starting", "And stuff.")
+        def my_thread():
+            print "Worker thread started: sleeping for 15 seconds"
+            time.sleep(15)
+            self.queue.put("done fucker!")
+
+        # Notice it invokes the nested function
+        t = threading.Thread(target=my_thread)
+        t.start()
 
 
 def main_gui():
     root = Tk()
     root.geometry("800x118+300+300")
     root.lift()
-    app = Example(root)
+    app = WizwaxApp(root)
     root.mainloop()
 
 if __name__ == '__main__':
