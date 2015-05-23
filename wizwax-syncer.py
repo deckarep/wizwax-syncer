@@ -154,7 +154,8 @@ class WizwaxApp(Frame):
         Frame.__init__(self, parent)
 
         self.parent = parent
-        self.poll_interval = 100
+        # How often to poll on the GUI thread and check the Queue, we don't need this to be super fast
+        self.poll_interval = 200
         self.queue = Queue.Queue()
 
         self.initUI()
@@ -167,6 +168,10 @@ class WizwaxApp(Frame):
     def updateEntry(self, widget, msg):
         widget.delete(0, END)
         widget.insert(0, msg)
+
+    def update_status_bar(self, msg):
+        self.status.config(text=msg)
+        self.status.update_idletasks()
 
     def initUI(self):
         self.parent.title("WizWax Syncer 1.0")
@@ -193,8 +198,8 @@ class WizwaxApp(Frame):
         syncButton = Button(self, text="Sync that Shiz", command=self.kickoff_thread)
         syncButton.grid(row=3, column=0, columnspan=2, sticky=W+E, padx=10)
 
-        status = Label(self, text="Status-Bar goes here.", relief=SUNKEN, anchor=W)
-        status.grid(row=4, column=0, columnspan=2, sticky=W+E, padx=10, pady=5)
+        self.status = Label(self, text="Status-Bar goes here.", relief=SUNKEN, anchor=W)
+        self.status.grid(row=4, column=0, columnspan=2, sticky=W+E, padx=10, pady=5)
 
         # Start polling on GUI main thread so we can receive a result from worker thread
         self.parent.after(self.poll_interval, self.poll)
@@ -206,6 +211,7 @@ class WizwaxApp(Frame):
             result = self.queue.get_nowait()
             # When we get a result, the kickoff_thread finished!
             print result
+            self.update_status_bar(result)
         except:
             # When we check the queue, if empty an Empty exception is thrown (this is expected)
             pass
