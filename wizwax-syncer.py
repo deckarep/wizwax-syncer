@@ -9,7 +9,7 @@ import time
 import sys
 
 # tkinter junk
-from Tkinter import Tk, BOTH, RIGHT, LEFT, W, E, N, S, DISABLED, NORMAL
+from Tkinter import Tk, BOTH, RIGHT, LEFT, W, E, N, S, DISABLED, NORMAL, END
 from ttk import Frame, Button, Style, Entry
 import tkFileDialog
 
@@ -157,39 +157,48 @@ class Example(Frame):
     def source_open(self):
         my_dir = tkFileDialog.askdirectory()
         print my_dir
-        #self.sourceEntry.state = NORMAL
-        self.sourceEntry.insert(0, my_dir)
+        self.updateEntry(self.sourceEntry, my_dir)
+
+    def updateEntry(self, widget, msg):
+        widget.delete(0, END)
+        widget.insert(0, msg)
 
     def initUI(self):
         self.parent.title("WizWax Syncer 1.0")
         self.style = Style()
         self.style.theme_use("default")
 
-        self.pack(fill=BOTH, expand=1)
+        self.pack(fill=BOTH, expand=True)
+        self.columnconfigure(0, pad=5, weight=3)
 
         self.sourceEntry = Entry(self)
-        self.sourceEntry.grid(row=0, column=0, padx=10)
-        self.sourceEntry.insert(0, "Pick source folder...")
+        self.sourceEntry.grid(row=0, column=0, padx=10, pady=10, sticky=W+E)
+        self.updateEntry(self.sourceEntry, "Pick source folder...")
 
         sourceButton = Button(self, text="Source", command=self.source_open)
         sourceButton.grid(row=0, column=1, padx=10)
 
-        destEntry = Entry(self, state=DISABLED)
-        destEntry.insert(0, "Pick destination folder...")
-        destEntry.grid(row=1, column=0)
+        destEntry = Entry(self)
+        self.updateEntry(destEntry, "Pick destination folder...")
+        destEntry.grid(row=1, column=0, padx=10, pady=10, sticky=W+E)
 
         destButton = Button(self, text="Destination", command=self.source_open)
         destButton.grid(row=1, column=1)
 
+        syncButton = Button(self, text="Sync that Shiz", command=self.source_open)
+        syncButton.grid(row=3, column=0, sticky=W+E, padx=10)
+
 
 def main_gui():
     root = Tk()
-    root.geometry("600x150+300+300")
+    root.geometry("800x118+300+300")
+    root.lift()
     app = Example(root)
     root.mainloop()
 
 if __name__ == '__main__':
     sp.call('clear', shell=True)
+    # TODO: so Ronnie doesn't have to keep updating the folders, create a .wizwax config in home directory
     #banner()
     #main()
     if args.gui:
