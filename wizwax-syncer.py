@@ -11,8 +11,8 @@ import Queue
 import threading
 
 # tkinter junk
-from Tkinter import Tk, BOTH, RIGHT, LEFT, W, E, N, S, DISABLED, NORMAL, END
-from ttk import Frame, Button, Style, Entry
+from Tkinter import Tk, BOTH, RIGHT, LEFT, W, E, N, S, DISABLED, NORMAL, END, SUNKEN
+from ttk import Frame, Button, Style, Entry, Label
 import tkFileDialog
 import tkMessageBox
 
@@ -193,6 +193,9 @@ class WizwaxApp(Frame):
         syncButton = Button(self, text="Sync that Shiz", command=self.kickoff_thread)
         syncButton.grid(row=3, column=0, columnspan=2, sticky=W+E, padx=10)
 
+        status = Label(self, text="Status-Bar goes here.", relief=SUNKEN, anchor=W)
+        status.grid(row=4, column=0, columnspan=2, sticky=W+E, padx=10, pady=5)
+
         # Start polling on GUI main thread so we can receive a result from worker thread
         self.parent.after(self.poll_interval, self.poll)
 
@@ -225,7 +228,7 @@ class WizwaxApp(Frame):
 
 def main_gui():
     root = Tk()
-    root.geometry("800x118+300+300")
+    root.geometry("800x138+300+300")
     root.lift()
     app = WizwaxApp(root)
     root.mainloop()
