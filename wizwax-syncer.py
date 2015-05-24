@@ -158,6 +158,7 @@ class WizwaxApp(Frame):
         # How often to poll on the GUI thread and check the Queue, we don't need this to be super fast
         self.poll_interval = 200
         self.wizwax_filename = ".wizwax-syncer"
+        self.sync_started = False
 
         self.saved_source_path = None
         self.saved_dest_path = None
@@ -265,6 +266,7 @@ class WizwaxApp(Frame):
             # so update the .wizwaxfile
             self.write_wizwax_file()
             self.update_status_bar(result)
+            self.sync_started = False
             # We don't want the poll timer to be rescheduled cause we're done!
             # so return early bitch
             return
@@ -280,14 +282,19 @@ class WizwaxApp(Frame):
 
     # kickoff_thread() does the actual file i/o work so as to not block the main thread
     def kickoff_thread(self):
+
         # First check that we should move forward
         if self.saved_source_path is None or self.saved_dest_path is None:
             tkMessageBox.showwarning("Error", "Please choose a source and destination path first.")
             return
 
+        # Prevents user from kicking off multiple worker threads
+        if self.sync_started:
+            tkMessageBox.showwarning("Warning", "Syncing has already started uncle fucka.\nPlease wait!")
+            return
+
         # Start polling on GUI main thread so we can receive a result from worker thread
         self.parent.after(self.poll_interval, self.poll)
-        #tkMessageBox.showwarning("Starting", "And stuff.")
 
         self.update_status_bar("Syncing started...(please wait)")
         def worker_thread():
@@ -305,6 +312,7 @@ class WizwaxApp(Frame):
         # Notice it invokes the nested function
         t = threading.Thread(target=worker_thread)
         t.start()
+        self.sync_started = True
 
 def main_gui():
     root = Tk()
