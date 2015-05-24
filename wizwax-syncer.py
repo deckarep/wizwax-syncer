@@ -1,14 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
 import subprocess as sp
 import os
+import os.path
 import argparse
 import shutil
 import time
 import sys
 import Queue
 import threading
+import datetime
 
 # tkinter junk
 from Tkinter import Tk, BOTH, RIGHT, LEFT, W, E, N, S, DISABLED, NORMAL, END, SUNKEN
@@ -156,14 +157,28 @@ class WizwaxApp(Frame):
         self.parent = parent
         # How often to poll on the GUI thread and check the Queue, we don't need this to be super fast
         self.poll_interval = 200
+        self.wizwax_filename = ".wizwax-syncer"
+
+        self.saved_source_path = None
+        self.saved_dest_path = None
+        self.saved_last_sync = None
+
         self.queue = Queue.Queue()
+        self.choose_source_message = "Choose source folder..."
+        self.choose_dest_message = "Choose destination folder..."
 
         self.initUI()
+        self.check_wizwax_file()
 
     def source_open(self):
         my_dir = tkFileDialog.askdirectory()
-        print my_dir
+        self.saved_source_path = my_dir
         self.updateEntry(self.sourceEntry, my_dir)
+
+    def dest_open(self):
+        my_dir = tkFileDialog.askdirectory()
+        self.saved_dest_path = my_dir
+        self.updateEntry(self.destEntry, my_dir)
 
     def updateEntry(self, widget, msg):
         widget.delete(0, END)
@@ -172,6 +187,25 @@ class WizwaxApp(Frame):
     def update_status_bar(self, msg):
         self.status.config(text=msg)
         self.status.update_idletasks()
+
+    def check_wizwax_file(self):
+        """
+        Checks a two-line file in HOME directory called .wizwax-syncer to see if there is
+        any default source/dest folders already used...
+        """
+        user_home_folder = os.path.expanduser("~")
+        file_path = os.path.join(user_home_folder, self.wizwax_filename)
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as f:
+                content = f.read()
+                results = content.split("\n")
+                if len(results) >= 3: # We only care about the first two lines in the file
+                    self.saved_source_path, self.saved_dest_path, self.saved_last_sync = results[0], results[1], results[2]
+
+                    # We have what we need populate source/dest entry fields
+                    self.updateEntry(self.sourceEntry, self.saved_source_path)
+                    self.updateEntry(self.destEntry, self.saved_dest_path)
+                    self.update_status_bar("Last Synced: " + self.saved_last_sync)
 
     def initUI(self):
         self.parent.title("WizWax Syncer 1.0")
@@ -183,54 +217,78 @@ class WizwaxApp(Frame):
 
         self.sourceEntry = Entry(self)
         self.sourceEntry.grid(row=0, column=0, padx=10, pady=10, sticky=W+E)
-        self.updateEntry(self.sourceEntry, "Pick source folder...")
+        self.updateEntry(self.sourceEntry, self.choose_source_message)
 
         sourceButton = Button(self, text="Source", command=self.source_open)
         sourceButton.grid(row=0, column=1, padx=10)
 
-        destEntry = Entry(self)
-        self.updateEntry(destEntry, "Pick destination folder...")
-        destEntry.grid(row=1, column=0, padx=10, pady=10, sticky=W+E)
+        self.destEntry = Entry(self)
+        self.updateEntry(self.destEntry, self.choose_dest_message)
+        self.destEntry.grid(row=1, column=0, padx=10, pady=10, sticky=W+E)
 
-        destButton = Button(self, text="Destination", command=self.source_open)
+        destButton = Button(self, text="Destination", command=self.dest_open)
         destButton.grid(row=1, column=1)
 
-        syncButton = Button(self, text="Sync that Shiz", command=self.kickoff_thread)
+        syncButton = Button(self, text="Start Syncing Folders", command=self.kickoff_thread)
         syncButton.grid(row=3, column=0, columnspan=2, sticky=W+E, padx=10)
 
-        self.status = Label(self, text="Status-Bar goes here.", relief=SUNKEN, anchor=W)
+        self.status = Label(self, text="", relief=SUNKEN, anchor=W)
         self.status.grid(row=4, column=0, columnspan=2, sticky=W+E, padx=10, pady=5)
 
         # Start polling on GUI main thread so we can receive a result from worker thread
         self.parent.after(self.poll_interval, self.poll)
+
+    def write_wizwax_file(self):
+        """
+        Creates or updates the .wizwax-syncer file in user's home directory with
+        two lines, each line being the source/dest folder respectively
+        """
+        user_home_folder = os.path.expanduser("~")
+        file_path = os.path.join(user_home_folder, self.wizwax_filename)
+        # order of the lines matter
+        lines = (self.saved_source_path, self.saved_dest_path)
+        with open(file_path, "w") as f:
+            for l in lines:
+                f.write(l + "\n")
+
+            # Last line is the date
+            f.write(datetime.datetime.today().strftime("%a %b %d %I:%M:%S %p %Y"))
 
     # poll() is responsible for checking the synchronized queue for a result when finished.
     def poll(self):
         try:
             # We can't use the blocking get() call other we block GUI thread.
             result = self.queue.get_nowait()
+
             # When we get a result, the kickoff_thread finished!
-            print result
+            # so update the .wizwaxfile
+            self.write_wizwax_file()
             self.update_status_bar(result)
         except:
-            # When we check the queue, if empty an Empty exception is thrown (this is expected)
+            # When we check the queue, if empty an 'Empty' exception is thrown (this is expected)
             pass
 
         # Kick off poll again
         self.parent.after(self.poll_interval, self.poll)
 
-    # kickoff_thread() is responsible for doing the actual file i/o work so as to not block the main thread
+    # kickoff_thread() does the actual file i/o work so as to not block the main thread
     def kickoff_thread(self):
-        tkMessageBox.showwarning("Starting", "And stuff.")
-        def my_thread():
+        #tkMessageBox.showwarning("Starting", "And stuff.")
+        self.update_status_bar("Syncing started...(please wait)")
+        def worker_thread():
+            # WARNING: Do not reference UI in this worker thread, use the self.queue
             print "Worker thread started: sleeping for 15 seconds"
+            # Simulate work with this sleepy thread
             time.sleep(15)
-            self.queue.put("done fucker!")
+            # Actual work goes here
+            # HERE
+            # HERE
+            # Anything left goes here
+            self.queue.put("Syncing completed")
 
         # Notice it invokes the nested function
-        t = threading.Thread(target=my_thread)
+        t = threading.Thread(target=worker_thread)
         t.start()
-
 
 def main_gui():
     root = Tk()
@@ -241,7 +299,6 @@ def main_gui():
 
 if __name__ == '__main__':
     sp.call('clear', shell=True)
-    # TODO: so Ronnie doesn't have to keep updating the folders, create a .wizwax config in home directory
     #banner()
     #main()
     if args.gui:
