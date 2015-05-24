@@ -215,6 +215,7 @@ class WizwaxApp(Frame):
             self.update_status_bar("Last Synced: Unknown")
 
     def initUI(self):
+
         self.parent.title("WizWax Syncer 1.0")
         self.style = Style()
         self.style.theme_use("default")
@@ -305,7 +306,7 @@ class WizwaxApp(Frame):
         self.update_status_bar("Syncing started...(please wait)")
 
         def worker_thread():
-            # WARNING: Do not reference UI in this worker thread, use the self.queue
+            # WARNING: Do not reference UI or fields belonging to UI in this worker thread, use the self.queue
             print "Worker thread started: sleeping for 15 seconds"
             # Simulate work with this sleepy thread
             # 1. Actual work goes here
