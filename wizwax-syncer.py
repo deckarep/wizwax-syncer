@@ -207,6 +207,9 @@ class WizwaxApp(Frame):
                     self.updateEntry(self.destEntry, self.saved_dest_path)
                     self.update_status_bar("Last Synced: " + self.saved_last_sync)
 
+        if self.saved_last_sync is None:
+            self.update_status_bar("Last Synced: Unknown")
+
     def initUI(self):
         self.parent.title("WizWax Syncer 1.0")
         self.style = Style()
@@ -235,8 +238,6 @@ class WizwaxApp(Frame):
         self.status = Label(self, text="", relief=SUNKEN, anchor=W)
         self.status.grid(row=4, column=0, columnspan=2, sticky=W+E, padx=10, pady=5)
 
-        # Start polling on GUI main thread so we can receive a result from worker thread
-        self.parent.after(self.poll_interval, self.poll)
 
     def write_wizwax_file(self):
         """
@@ -264,26 +265,41 @@ class WizwaxApp(Frame):
             # so update the .wizwaxfile
             self.write_wizwax_file()
             self.update_status_bar(result)
-        except:
+            # We don't want the poll timer to be rescheduled cause we're done!
+            # so return early bitch
+            return
+        except Queue.Empty:
             # When we check the queue, if empty an 'Empty' exception is thrown (this is expected)
             pass
+        except:
+            print "Unexpected error: ", sys.exc_info()[0]
+            raise
 
         # Kick off poll again
         self.parent.after(self.poll_interval, self.poll)
 
     # kickoff_thread() does the actual file i/o work so as to not block the main thread
     def kickoff_thread(self):
+        # First check that we should move forward
+        if self.saved_source_path is None or self.saved_dest_path is None:
+            tkMessageBox.showwarning("Error", "Please choose a source and destination path first.")
+            return
+
+        # Start polling on GUI main thread so we can receive a result from worker thread
+        self.parent.after(self.poll_interval, self.poll)
         #tkMessageBox.showwarning("Starting", "And stuff.")
+
         self.update_status_bar("Syncing started...(please wait)")
         def worker_thread():
             # WARNING: Do not reference UI in this worker thread, use the self.queue
             print "Worker thread started: sleeping for 15 seconds"
             # Simulate work with this sleepy thread
+            # 1. Actual work goes here
             time.sleep(15)
-            # Actual work goes here
-            # HERE
-            # HERE
-            # Anything left goes here
+
+            # 2. Anything left goes here
+            # The queue could have something useful in it...but currently it's acting as just
+            # a signal to the poller that we're done.
             self.queue.put("Syncing completed")
 
         # Notice it invokes the nested function
