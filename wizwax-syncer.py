@@ -153,7 +153,6 @@ class WizwaxApp(Frame):
 
     def __init__(self, parent):
         Frame.__init__(self, parent)
-
         self.parent = parent
         # How often to poll on the GUI thread and check the Queue, we don't need this to be super fast
         self.poll_interval = 200
@@ -172,7 +171,6 @@ class WizwaxApp(Frame):
         self.check_wizwax_file()
         self.poll_counter = 0
         self.ascii_spinner = ("/", "-", "\\", "|")
-
 
     def source_open(self):
         my_dir = tkFileDialog.askdirectory()
