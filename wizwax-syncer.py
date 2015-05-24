@@ -170,6 +170,9 @@ class WizwaxApp(Frame):
 
         self.initUI()
         self.check_wizwax_file()
+        self.poll_counter = 0
+        self.ascii_spinner = ("/", "-", "\\", "|")
+
 
     def source_open(self):
         my_dir = tkFileDialog.askdirectory()
@@ -259,7 +262,7 @@ class WizwaxApp(Frame):
     # poll() is responsible for checking the synchronized queue for a result when finished.
     def poll(self):
         try:
-            # We can't use the blocking get() call other we block GUI thread.
+            # We can't use the blocking get() call otherwise we block GUI thread.
             result = self.queue.get_nowait()
 
             # When we get a result, the kickoff_thread finished!
@@ -267,11 +270,15 @@ class WizwaxApp(Frame):
             self.write_wizwax_file()
             self.update_status_bar(result)
             self.sync_started = False
+            self.poll_counter = 0
             # We don't want the poll timer to be rescheduled cause we're done!
             # so return early bitch
             return
         except Queue.Empty:
             # When we check the queue, if empty an 'Empty' exception is thrown (this is expected)
+            # In here we can do an ascii spinner update
+            self.update_status_bar("Syncing..." + self.ascii_spinner[self.poll_counter % len(self.ascii_spinner)])
+            self.poll_counter += 1
             pass
         except:
             print "Unexpected error: ", sys.exc_info()[0]
@@ -295,8 +302,8 @@ class WizwaxApp(Frame):
 
         # Start polling on GUI main thread so we can receive a result from worker thread
         self.parent.after(self.poll_interval, self.poll)
-
         self.update_status_bar("Syncing started...(please wait)")
+
         def worker_thread():
             # WARNING: Do not reference UI in this worker thread, use the self.queue
             print "Worker thread started: sleeping for 15 seconds"
